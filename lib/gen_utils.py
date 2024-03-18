@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from skimage import measure
+from skimage import color, filters
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -9,6 +10,13 @@ def get_otsu_threshold(image):
     ret, _ = cv2.threshold(image.astype(np.uint8), 0, 255,
                            cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     return ret
+
+
+def reduce_lightHSV(rgb, sat_red=0.5, val_red=0.5):
+        hsv = color.rgb2hsv(rgb/255)
+        hsv[...,1] *= sat_red
+        hsv[...,2] *= val_red
+        return (color.hsv2rgb(hsv)*255).astype(np.uint8)
 
 
 def apply_motion_blur(image, size, angle):
@@ -27,6 +35,15 @@ def apply_motion_blur(image, size, angle):
     k = k * (1.0 / np.sum(k))
     return cv2.filter2D(image, -1, k).astype(np.uint8)
 
+
+def illumination2opacity(img: np.ndarray, illumination):
+        alpha = color.rgb2gray(img)
+        if illumination>0:
+            alpha = np.clip(filters.gaussian((1-alpha), sigma=20, channel_axis=None),0,1)
+        else:
+            alpha = np.clip(2*filters.gaussian((alpha), sigma=20, channel_axis=None),0,1)
+        return alpha
+    
 
 def color_level_adjustment(image, inBlack=0, inWhite=255, inGamma=1.0, outBlack=0, outWhite=255):
     '''
@@ -72,7 +89,7 @@ def crystallize(img, r):
 
     # Perform nearest neighbour for all pixels
     nbrs = NearestNeighbors(
-        n_neighbors=1, algorithm='ball_tree', n_jobs=16).fit(sel_pixels)
+        n_neighbors=1, algorithm='ball_tree', n_jobs=4).fit(sel_pixels)
     distances, indices = nbrs.kneighbors(pixels)
     color_pixels = sel_pixels[indices[:, 0]]
 
@@ -176,7 +193,7 @@ def centreCrop(image, reqH, reqW):
     return crop_img
 
 
-def alphaBlend(img, layer, alpha):
+def alpha_blend(img, layer, alpha):
     if layer.ndim == 3:
         layer = cv2.cvtColor(layer.astype(np.uint8), cv2.COLOR_RGB2GRAY)
 
@@ -205,3 +222,10 @@ def layer_blend(layer1, layer2):
     assert layer1.shape == layer2.shape
     result = 255.0*(1 - (1-layer1/255.0)*(1-layer2/255.0))
     return result.astype(np.uint8)
+
+
+def scale_depth(im, nR, nC):
+    nR0 = len(im)     # source number of rows 
+    nC0 = len(im[0])  # source number of columns 
+    return np.asarray([[ im[int(nR0 * r / nR)][int(nC0 * c / nC)]
+            for c in range(nC)] for r in range(nR)])

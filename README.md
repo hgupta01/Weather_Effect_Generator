@@ -14,8 +14,8 @@ We generate the foggy, rainy and snowy weather using the following pipeline. To 
 
 
 ### Weather Effect Generation using Neural Style Transfer
-We trained three VGG classifier for fog-clear, rain-clear and snow-clear weather classification. The pretrained weights are available [here](https://drive.google.com/drive/folders/1MEVMLVhrv4t7efwAfCSk13yie8G-XcIB?usp=sharing).  
+We trained three VGG classifier for fog-clear, rain-clear and snow-clear weather classification. The pretrained weights are available [here](https://drive.google.com/drive/folders/1MEVMLVhrv4t7efwAfCSk13yie8G-XcIB?usp=sharing).
 
 
 ### Weather Effect Generation using Cyclic GAN
-We trained three Cyclic-GAN for clear<->fog, clear<->rain and clear<->snow I2I translation. The pretrained weights are available [here](https://drive.google.com/drive/folders/1zfoYWFGku-KJbBwsyl6CFUHL1yiGzAy6?usp=sharing)  
+We trained three Cyclic-GAN for clear<->fog, clear<->rain and clear<->snow I2I translation. The pretrained weights are available [here](https://drive.google.com/drive/folders/1zfoYWFGku-KJbBwsyl6CFUHL1yiGzAy6?usp=sharing).

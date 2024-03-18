@@ -1,4 +1,3 @@
-import cv2
 import random
 import numpy as np
 from lib.gen_utils import (generate_noisy_image, zoom_image_and_crop, get_otsu_threshold,
@@ -9,10 +8,15 @@ from lib.gen_utils import (generate_noisy_image, zoom_image_and_crop, get_otsu_t
 class SnowGenUsingNoise:
     def __init__(self):
         self._noise_scale_range = {
-            'small': (0.24, 0.45), 'large': (0.45, 0.65)}
+            # 'small': (0.24, 0.45), 'large': (0.45, 0.65)
+            'small': (0.1, 0.2), 'large': (0.3, 0.5)
+            }
         self._noise_amount_range = {
-            'small': (0.35, 0.65), 'large': (0.05, 0.15)}
-        self._zoom_range = {'small': (1.75, 3.0), 'large': (7, 10)}
+            # 'small': (0.35, 0.65), 'large': (0.05, 0.15)
+            'small': (0.25, 0.45), 'large': (0.05, 0.15)
+            }
+        # self._zoom_range = {'small': (1.75, 3.0), 'large': (7, 10)}
+        self._zoom_range = {'small': (1.5, 2.0), 'large': (4, 6)}
         self._blur_kernel_range = {'small': [3, 5, 7], 'large': [9, 11, 13]}
         self._repeat_scale = {'small': [0], 'large': [0]}
         self._max_level = {'small': (100, 150), 'large': (200, 250)}
@@ -73,6 +77,7 @@ class SnowGenUsingNoise:
                                   cyrstalize_amount=random.uniform(
                                       self._cyrstalize_range[0], self._cyrstalize_range[1])
                                   )
-            tr = 0.25 + random.random()*0.5
-            layer = layer + tr*l  # layer_blend(layer, l)
+            # tr = 0.25 + random.random()*0.5
+            # layer = layer + tr*l  
+            layer = layer_blend(layer, l)
         return layer

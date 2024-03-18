@@ -16,21 +16,22 @@ def tensor2pil(tensor:torch.Tensor)->Image:
 
 
 def load_style_transfer_model(pretrained:str=None)->nn.Module:
-    if pretrained:
-        print(f"Loading VGG with {pretrained} weights.")
-        cnn = models.vgg19(weights=None).features
-        state_dict = torch.load("fog_vgg_512")
-        state_dict = {k.replace('features.', ''):v for k, v in state_dict.items() if 'features' in k}
-        cnn.load_state_dict(state_dict)
-    else:
-        print(f"Loading VGG with IMAGENET1K weights.")
-        cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features
+    cnn = torch.load(pretrained, map_location="cpu")["model"].float().features
+    # if pretrained:
+        # print(f"Loading VGG with {pretrained} weights.")
+        # cnn = models.vgg19(weights=None).features
+        # state_dict = torch.load(pretrained)
+        # state_dict = {k.replace('features.', ''):v for k, v in state_dict.items() if 'features' in k}
+        # cnn.load_state_dict(state_dict)
+#     else:
+#         #print(f"Loading VGG with IMAGENET1K weights.")
+#         cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features
     cnn.eval()
     return cnn
 
 
 def style_content_image_loader(content_path, style_path):
-    wreq = 512
+    wreq = 640
 
     content_img = Image.open(content_path)
     wc, hc = content_img.size
@@ -68,7 +69,8 @@ class ContentLoss(nn.Module):
         # to dynamically compute the gradient: this is a stated value,
         # not a variable. Otherwise the forward method of the criterion
         # will throw an error.
-        self.target = target.detach()
+        # self.target = target.detach()
+        self.register_buffer('target', target.detach())
 
     def forward(self, input):
         self.loss = F.mse_loss(input, self.target)
@@ -91,40 +93,19 @@ def gram_matrix(input):
 class StyleLoss(nn.Module):
     def __init__(self, target_feature):
         super(StyleLoss, self).__init__()
-        self.target = gram_matrix(target_feature).detach()
+        #self.target = gram_matrix(target_feature).detach()
+        self.register_buffer('target', gram_matrix(target_feature).detach())
 
     def forward(self, input):
         G = gram_matrix(input)
         self.loss = F.mse_loss(G, self.target)
         return input
 
-
-class Normalization(nn.Module):
-    def __init__(self, mean:torch.Tensor, std:torch.Tensor):
-        super(Normalization, self).__init__()
-        # .view the mean and std to make them [C x 1 x 1] so that they can
-        # directly work with image Tensor of shape [B x C x H x W].
-        # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = mean.view(-1, 1, 1)
-        self.std = std.view(-1, 1, 1)
-
-    def forward(self, img):
-        # normalize img
-        return (img - self.mean) / self.std
     
-    
-def get_style_model_and_losses(cnn, style_img, content_img):
-    
-    #image normalization
-    normalization_mean = torch.tensor([0.485, 0.456, 0.406])
-    normalization_std = torch.tensor([0.229, 0.224, 0.225])
-    
+def get_style_model_and_losses(cnn, style_img, content_img, device="cpu"):
     # desired depth layers to compute style/content losses :
     content_layers = ['conv_4']
     style_layers = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
-    
-    # normalization module
-    normalization = Normalization(normalization_mean, normalization_std)
 
     # just in order to have an iterable access to or list of content/syle losses
     content_losses = []
@@ -132,7 +113,9 @@ def get_style_model_and_losses(cnn, style_img, content_img):
 
     # assuming that cnn is a nn.Sequential, so we make a new nn.Sequential
     # to put in modules that are supposed to be activated sequentially
-    model = nn.Sequential(normalization)
+    mean = torch.tensor([0.485, 0.456, 0.406])
+    std = torch.tensor([0.229, 0.224, 0.225])
+    model = nn.Sequential(transforms.Normalize(mean=mean, std=std))
 
     i = 0  # increment every time we see a conv
     for layer in cnn.children():
@@ -174,8 +157,11 @@ def get_style_model_and_losses(cnn, style_img, content_img):
             break
 
     model = model[:(i + 1)]
-
-    return model, style_losses, content_losses
+    for sl in style_losses:
+        sl.to(device)
+    for sl in content_losses:
+        sl.to(device)
+    return model.to(device), style_losses, content_losses
 
 
 def get_input_optimizer(input_img):
@@ -185,10 +171,10 @@ def get_input_optimizer(input_img):
 
 
 def run_style_transfer(cnn, content_img, style_img, input_img, num_steps=300,
-                       style_weight=1000000, content_weight=1):
+                       style_weight=1000000, content_weight=1, device="cpu"):
     """Run the style transfer."""
     # print('Building the style transfer model..')
-    model, style_losses, content_losses = get_style_model_and_losses(cnn, style_img, content_img)
+    model, style_losses, content_losses = get_style_model_and_losses(cnn, style_img, content_img, device=device)
 
     # We want to optimize the input and not the model parameters so we
     # update all the requires_grad fields accordingly
@@ -197,10 +183,7 @@ def run_style_transfer(cnn, content_img, style_img, input_img, num_steps=300,
 
     optimizer = get_input_optimizer(input_img)
 
-    # print('Optimizing..')
-    # run = [0]
-    # while run[0] <= num_steps:
-    for run in tqdm(num_steps):
+    for run in tqdm(range(num_steps)):
         def closure():
             # correct the values of updated input image
             with torch.no_grad():
@@ -221,14 +204,6 @@ def run_style_transfer(cnn, content_img, style_img, input_img, num_steps=300,
 
             loss = style_score + content_score
             loss.backward()
-
-            # run[0] += 1
-            # if run[0] % 50 == 0:
-            #     print("run {}:".format(run))
-            #     print('Style Loss : {:4f} Content Loss: {:4f}'.format(
-            #         style_score.item(), content_score.item()))
-            #     print()
-
             return style_score + content_score
 
         optimizer.step(closure)

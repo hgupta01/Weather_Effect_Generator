@@ -32,7 +32,6 @@ def perlin_noise(w, h, depth):
 
     return perlin
 
-
 def generate_fog(image, depth, visibility=None, fog_color=None):
     '''
     input:
@@ -110,3 +109,7 @@ def generate_fog(image, depth, visibility=None, fog_color=None):
 
     I = I_ex + O_p[:,:,None] * I_al
     return I.astype(np.uint8)
+
+def fogAttenuation(img: np.ndarray, depth:np.ndarray, visibility=1000, fog_color=200):
+        img_fog = generate_fog(img.copy(), depth.copy(), visibility=visibility, fog_color=fog_color)
+        return img_fog
