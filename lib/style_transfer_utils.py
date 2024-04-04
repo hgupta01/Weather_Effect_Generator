@@ -16,16 +16,15 @@ def tensor2pil(tensor:torch.Tensor)->Image:
 
 
 def load_style_transfer_model(pretrained:str=None)->nn.Module:
-    cnn = torch.load(pretrained, map_location="cpu")["model"].float().features
-    # if pretrained:
-        # print(f"Loading VGG with {pretrained} weights.")
-        # cnn = models.vgg19(weights=None).features
-        # state_dict = torch.load(pretrained)
-        # state_dict = {k.replace('features.', ''):v for k, v in state_dict.items() if 'features' in k}
-        # cnn.load_state_dict(state_dict)
-#     else:
-#         #print(f"Loading VGG with IMAGENET1K weights.")
-#         cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features
+    if pretrained:
+        print(f"Loading VGG with {pretrained} weights.")
+        cnn = models.vgg19(weights=None).features
+        state_dict = torch.load(pretrained)
+        state_dict = {k.replace('features.', ''):v for k, v in state_dict.items() if 'features' in k}
+        cnn.load_state_dict(state_dict)
+    else:
+        print(f"Loading VGG with IMAGENET1K weights.")
+        cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features
     cnn.eval()
     return cnn
 
