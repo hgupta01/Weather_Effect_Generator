@@ -11,7 +11,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--img_path", type=str, required=True, help="path to the file or the folder")
     parser.add_argument("--save_folder", type=str, default="./depth/", help="path to the folder")
-    parser.add_argument("--midas_model", type=str, deafuls="DPT_Large", help="Midas model name")
+    parser.add_argument("--midas_model", type=str, default="DPT_Large", help="Midas model name")
     parser.add_argument("--use_cuda", action="store_true")
     parser.add_argument("--baseline", type=float, default=0.54)
     parser.add_argument("--focal", type=float, default=721.09)
