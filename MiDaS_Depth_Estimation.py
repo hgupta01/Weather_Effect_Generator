@@ -36,7 +36,7 @@ def get_depth_estimation_model(model_name:str, device="cpu"):
 
 def getDisparityMap(model, transform, img_path):
     img = Image.open(img_path)
-
+    img = np.array(img) / 255.0  # Convert to NumPy array and normalize
     input_batch = transform(img)
     with torch.no_grad():
         prediction = model(input_batch.cuda())
@@ -53,10 +53,11 @@ def getDisparityMap(model, transform, img_path):
 def main():
     args = parse_arguments()
     
-    device = torch.device("cpu") 
     if args.use_cuda:
-        device = torch.device("cuda") 
-        
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
     ### kitti
     baseline = args.baseline
     focal = args.focal
