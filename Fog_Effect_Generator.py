@@ -82,10 +82,15 @@ def main():
     
     clearP = Path(args.clear_path)
     depthP = Path(args.depth_path)
-    if clearP.is_file() and (depthP.is_file() and depthP.suffix==".npy"):
-        snowy = foggen.genEffect(clearP, depthP)
+    save_folder = Path(args.save_folder)
+
+    if clearP.is_file() and (depthP.is_file() and depthP.suffix == ".npy"):
+        foggy = foggen.genEffect(clearP, depthP)
+        save_path = save_folder / (clearP.stem + "-fsyn.jpg")
+        print(f"Saving foggy image to {save_path}")
+        Image.fromarray(foggy).save(save_path)
         if args.show:
-            Image.fromarray(snowy).show()
+            Image.fromarray(foggy).show()
 
     if clearP.is_dir() and depthP.is_dir():
         if args.txt_file:
@@ -101,13 +106,14 @@ def main():
         image_files = [image_files[idx] for idx in valid_files] 
         depth_files = [depth_files[idx] for idx in valid_files]
         
-        save_folder = Path(args.save_folder)
+
         if not save_folder.exists():
             os.makedirs(str(save_folder))
         
         for imgp, depthp in tqdm(zip(image_files, depth_files), total=len(image_files)):
             foggy = foggen.genEffect(imgp, depthp)
-            Image.fromarray(foggy).save(save_folder / (imgp.stem+"-fsyn.jpg"))
+            save_path = save_folder / (clearP.stem + "-fsyn.jpg")
+            Image.fromarray(foggy).save(save_path)
 
 if __name__=='__main__':
     main()

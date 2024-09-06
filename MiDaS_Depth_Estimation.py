@@ -11,7 +11,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--img_path", type=str, required=True, help="path to the file or the folder")
     parser.add_argument("--save_folder", type=str, default="./depth/", help="path to the folder")
-    parser.add_argument("--midas_model", type=str, deafuls="DPT_Large", help="Midas model name")
+    parser.add_argument("--midas_model", type=str, default="DPT_Large", help="Midas model name")
     parser.add_argument("--use_cuda", action="store_true")
     parser.add_argument("--baseline", type=float, default=0.54)
     parser.add_argument("--focal", type=float, default=721.09)
@@ -36,7 +36,7 @@ def get_depth_estimation_model(model_name:str, device="cpu"):
 
 def getDisparityMap(model, transform, img_path):
     img = Image.open(img_path)
-
+    img = np.array(img)  # Convert to NumPy array 
     input_batch = transform(img)
     with torch.no_grad():
         prediction = model(input_batch.cuda())
@@ -53,10 +53,11 @@ def getDisparityMap(model, transform, img_path):
 def main():
     args = parse_arguments()
     
-    device = torch.device("cpu") 
     if args.use_cuda:
-        device = torch.device("cuda") 
-        
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
     ### kitti
     baseline = args.baseline
     focal = args.focal
